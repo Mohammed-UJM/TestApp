@@ -48,7 +48,18 @@ namespace TestApp.Controllers
         {
             if (id != emploi.Id)
             {
-                return BadRequest();
+                return BadRequest("Le parametre 'id' ne correspond pas à l id de l objet en parametre 'emploi' !");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var personne = await _context.Personnes.FindAsync(emploi.PersonneId);
+            if (personne == null)
+            {
+                return NotFound("Aucune personne avec l ID fourni n'existe en base de données !");
             }
 
             _context.Entry(emploi).State = EntityState.Modified;
@@ -69,7 +80,8 @@ namespace TestApp.Controllers
                 }
             }
 
-            return NoContent();
+            // Retournez l'emploi modifié avec un message de succès
+            return Ok(new { message = "Modification réussie !", emploi });
         }
 
         // Ajout d'un nouvel emploi
@@ -77,10 +89,21 @@ namespace TestApp.Controllers
         [HttpPost]
         public async Task<ActionResult<Emploi>> PostEmploi(Emploi emploi)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var personne = await _context.Personnes.FindAsync(emploi.PersonneId);
+            if (personne == null)
+            {
+                return NotFound("Aucune personne avec l ID fourni n'existe en base de données !");
+            }
+
             _context.Emplois.Add(emploi);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetEmploi", new { id = emploi.Id }, emploi);
+            return CreatedAtAction(nameof(GetEmploi), new { id = emploi.Id }, emploi);
         }
 
         // Suppression d'un emploi par ID
@@ -96,8 +119,49 @@ namespace TestApp.Controllers
             _context.Emplois.Remove(emploi);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            // Retournez l'emploi supprimé avec un message de succès
+            return Ok(new { message = "Suppression réussie !", emploi });
         }
+
+        [HttpGet("{id}/emplois")]
+        public async Task<ActionResult> GetEmploisEntreDates(long id, DateTime? dateDebut, DateTime? dateFin)
+        {
+            // Définir les dates par défaut si elles ne sont pas fournies
+            dateDebut ??= DateTime.Now.AddYears(-150);
+            dateFin ??= DateTime.Now;
+
+            // Vérification si la date de début est inférieure ou égale à la date de fin
+            if (dateDebut.Value > dateFin.Value)
+            {
+                return BadRequest("La date de début doit être inférieure ou égale à la date de fin.");
+            }
+
+            // Récupérer la personne avec ses emplois
+            var personne = await _context.Personnes
+                .Include(p => p.Emplois)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            // Vérification si la personne existe
+            if (personne == null)
+            {
+                return NotFound($"Aucune personne avec le id fourni {id} n'existe en base de données !");
+            }
+
+            // Filtrer les emplois selon les critères spécifiés
+            var emploisFiltres = personne.Emplois
+                .Where(e =>
+                    // Condition pour les emplois ayant une date de début ou de fin à l'intérieur de la plage
+                    (e.DateDebut >= dateDebut && e.DateDebut <= dateFin) ||
+                    (e.DateFin >= dateDebut && e.DateFin <= dateFin) ||
+
+                    // Condition pour les emplois ayant une date de début et de fin à l'extérieur de la plage
+                    (e.DateDebut <= dateDebut && e.DateFin >= dateFin))
+                .ToList();
+
+            // Retourner les emplois filtrés
+            return Ok(emploisFiltres);
+        }
+
 
         // Vérification de l'existence d'un emploi par ID
         private bool EmploiExiste(long id)

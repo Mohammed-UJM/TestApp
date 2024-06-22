@@ -26,11 +26,11 @@
           <td>{{ person.nom }}</td>
           <td>{{ person.prenom }}</td>
           <td>{{ formatDate(person.dateNaissance) }}</td>
-          <td>{{ calculateAge(person.dateNaissance) }}</td>
+          <td>{{ person.age }}</td>
           <td>
             <ul class="emplois">
-              <li v-if="person.emploisActuels.length === 0">Aucun emploi</li>
-              <li v-else v-for="emploi in person.emploisActuels" :key="emploi.id">
+              <li v-if="person.emplois.length === 0">Aucun emploi</li>
+              <li v-else v-for="emploi in person.emplois" :key="emploi.id">
                 {{ emploi.poste }} chez {{ emploi.nomEntreprise }}
               </li>
             </ul>
@@ -63,22 +63,19 @@ export default {
     const fetchPersons = async () => {
       try {
         const response = await apiClient.get('/Personnes');
-        persons.value = response.data.map(person => ({
-          ...person,
-          emploisActuels: person.emplois.filter(emploi => emploi.estActuel)
-        })).sort((a, b) => a.nom.localeCompare(b.nom));
+        persons.value = response.data;
       } catch (error) {
         console.error('Erreur lors de la récupération des personnes:', error);
       }
     };
 
     // Fonction pour calculer l'âge à partir de la date de naissance
-    const calculateAge = (birthDate) => {
-      const birth = new Date(birthDate);
-      const diff = Date.now() - birth.getTime();
-      const age = new Date(diff).getUTCFullYear() - 1970;
-      return age;
-    };
+    // const calculateAge = (birthDate) => {
+    //   const birth = new Date(birthDate);
+    //   const diff = Date.now() - birth.getTime();
+    //   const age = new Date(diff).getUTCFullYear() - 1970;
+    //   return age;
+    // };
 
     // Fonction pour afficher les détails d'une personne
     const viewDetails = (personId) => {
@@ -115,7 +112,7 @@ export default {
     onMounted(fetchPersons);
 
     // Exportation des variables et fonctions nécessaires au template
-    return { persons, entrepriseSearch, calculateAge, viewDetails, editPerson, deletePerson, formatDate, filteredPersons };
+    return { persons, entrepriseSearch, viewDetails, editPerson, deletePerson, formatDate, filteredPersons };
   },
 };
 </script>

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestApp.Models;
@@ -20,12 +19,13 @@ namespace TestApp.Controllers
             _context = context;
         }
 
-        // Récupération de la liste des personnes
+        // Récupération de la liste des personnes triées par nom
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Personne>>> GetPersonnes()
         {
             return await _context.Personnes
-                .Include(p => p.Emplois)
+                .Include(p => p.Emplois.Where(e => e.EstActuel == true))
+                .OrderBy(p => p.Nom)
                 .ToListAsync();
         }
 
@@ -34,7 +34,7 @@ namespace TestApp.Controllers
         public async Task<ActionResult<Personne>> GetPersonne(long id)
         {
             var personne = await _context.Personnes
-                .Include(p => p.Emplois) // Inclure les emplois liés à la personne
+                .Include(p => p.Emplois)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (personne == null)
@@ -42,17 +42,30 @@ namespace TestApp.Controllers
                 return NotFound();
             }
 
-            return personne;
+            return Ok(new
+            {
+                personne.Id,
+                personne.Nom,
+                personne.Prenom,
+                personne.DateNaissance,
+                personne.Age,
+                personne.Emplois,
+                EmploisActuels = personne.Emplois.Where(e => e.EstActuel == true)
+            });
         }
 
         // Mise à jour d'une personne par ID
-        // Pour protéger contre les attaques de surpostage, voir https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutPersonne(long id, Personne personne)
         {
             if (id != personne.Id)
             {
-                return BadRequest();
+                return BadRequest("Le parametre 'id' ne correspond pas à l id de l objet en parametre 'personne' !");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
             }
 
             _context.Entry(personne).State = EntityState.Modified;
@@ -73,11 +86,11 @@ namespace TestApp.Controllers
                 }
             }
 
-            return NoContent();
+            // Retournez la personne modifiée avec un message de succès
+            return Ok(new { message = "Modification réussie !", personne });
         }
 
         // Ajout d'une nouvelle personne
-        // Pour protéger contre les attaques de surpostage, voir https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Personne>> PostPersonne(Personne personne)
         {
@@ -105,7 +118,30 @@ namespace TestApp.Controllers
             _context.Personnes.Remove(personne);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            // Retournez la personne supprimée avec un message de succès
+            return Ok(new { message = "Suppression réussie !", personne });
+        }
+
+        // Récupération de toutes les personnes ayant travaillé pour une entreprise donnée
+        [HttpGet("by_entreprise/{nomEntreprise}")]
+        public async Task<ActionResult<IEnumerable<Personne>>> GetPersonnesByCompany(string nomEntreprise)
+        {
+            if (string.IsNullOrWhiteSpace(nomEntreprise))
+            {
+                return BadRequest("Le nom de l'entreprise doit être fourni.");
+            }
+
+            var personnes = await _context.Personnes
+                .Include(p => p.Emplois.Where(e => e.EstActuel == true))
+                .Where(p => p.Emplois.Any(e => e.NomEntreprise == nomEntreprise))
+                .ToListAsync();
+
+            if (personnes == null || personnes.Count == 0)
+            {
+                return Ok($"Aucune personne n a collaborer avec cette entreprise : {nomEntreprise}");
+            }
+
+            return Ok(personnes);
         }
 
         // Vérification de l'existence d'une personne par ID

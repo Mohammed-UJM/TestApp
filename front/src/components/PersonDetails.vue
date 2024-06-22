@@ -196,7 +196,6 @@ export default {
         await apiClient.delete(`/Emplois/${emploiId}`);
         // Mettre à jour la liste des emplois affichés après suppression
         this.person.emplois = this.person.emplois.filter(e => e.id !== emploiId);
-        this.filteredEmplois = this.person.emplois;
         this.resetFilter();
       } catch (error) {
         console.error("Erreur lors de la suppression de l'emploi", error);
@@ -250,9 +249,9 @@ export default {
         await apiClient.put(`/Emplois/${this.selectedEmploi.id}`, this.selectedEmploi);
 
         // Mettre à jour les détails de l'emploi dans la liste affichée
-        const index = this.filteredEmplois.findIndex(e => e.id === this.selectedEmploi.id);
+        const index = this.person.emplois.findIndex(e => e.id === this.selectedEmploi.id);
         if (index !== -1) {
-          this.filteredEmplois.splice(index, 1, { ...this.selectedEmploi });
+          this.person.emplois.splice(index, 1, { ...this.selectedEmploi });
         }
 
         // Fermer le modèle après la mise à jour réussie
