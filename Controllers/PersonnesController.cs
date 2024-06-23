@@ -136,11 +136,6 @@ namespace TestApp.Controllers
                 .Where(p => p.Emplois.Any(e => e.NomEntreprise == nomEntreprise))
                 .ToListAsync();
 
-            if (personnes == null || personnes.Count == 0)
-            {
-                return Ok($"Aucune personne n a collaborer avec cette entreprise : {nomEntreprise}");
-            }
-
             return Ok(personnes);
         }
 

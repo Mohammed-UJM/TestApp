@@ -8,19 +8,19 @@
       <!-- Champ Nom -->
       <div class="form-group">
         <label for="nom">Nom :</label>
-        <input type="text" v-model="person.nom" id="nom" required>
+        <input type="text" v-model="person.nom" id="nom">
       </div>
 
       <!-- Champ Prénom -->
       <div class="form-group">
         <label for="prenom">Prénom :</label>
-        <input type="text" v-model="person.prenom" id="prenom" required>
+        <input type="text" v-model="person.prenom" id="prenom">
       </div>
 
       <!-- Champ Date de naissance avec validation d'âge -->
       <div class="form-group">
         <label for="dateNaissance">Date de naissance :</label>
-        <input type="date" v-model="person.dateNaissance" @blur="validateAge" id="dateNaissance" required>
+        <input type="date" v-model="person.dateNaissance" @blur="validateAge" id="dateNaissance">
         <p v-if="ageError" class="error">{{ ageError }}</p> <!-- Message d'erreur si l'âge est invalide -->
       </div>
 
@@ -52,11 +52,11 @@ export default {
   methods: {
     // Méthode pour ajouter une personne
     addPerson() {
-      const age = this.calculateAge(this.person.dateNaissance); // Calcul de l'âge à partir de la date de naissance
-      if (age > 150) {
-        this.ageError = 'Les personnes de plus de 150 ans ne peuvent pas être enregistrées.'; // Vérification de l'âge maximum
-        return;
-      }
+      // const age = this.calculateAge(this.person.dateNaissance); // Calcul de l'âge à partir de la date de naissance
+      // if (age > 150) {
+      //   this.ageError = 'Les personnes de plus de 150 ans ne peuvent pas être enregistrées.'; // Vérification de l'âge maximum
+      //   return;
+      // }
 
       // Appel API pour ajouter la personne
       apiClient.post('/personnes', this.person)
@@ -65,25 +65,25 @@ export default {
         })
         .catch(error => {
           console.error('Erreur lors de l\'ajout de la personne:', error); // Affichage de l'erreur dans la console
-          this.errorMessage = 'Erreur lors de l\'ajout de la personne.'; // Message d'erreur affiché à l'utilisateur
+          this.errorMessage = 'Tous les champs sont obligatoire, et l\'age ne doit pas dépasser 150 ans.'; // Message d'erreur affiché à l'utilisateur
         });
     },
     // Méthode pour calculer l'âge à partir de la date de naissance
-    calculateAge(dateNaissance) {
-      const birthDate = new Date(dateNaissance);
-      const ageDiff = Date.now() - birthDate.getTime();
-      const ageDate = new Date(ageDiff);
-      return Math.abs(ageDate.getUTCFullYear() - 1970); // Renvoie l'âge en années
-    },
+    // calculateAge(dateNaissance) {
+    //   const birthDate = new Date(dateNaissance);
+    //   const ageDiff = Date.now() - birthDate.getTime();
+    //   const ageDate = new Date(ageDiff);
+    //   return Math.abs(ageDate.getUTCFullYear() - 1970); // Renvoie l'âge en années
+    // },
     // Méthode pour valider l'âge lors de la saisie de la date de naissance
-    validateAge() {
-      const age = this.calculateAge(this.person.dateNaissance); // Calcul de l'âge actuel
-      if (age > 150) {
-        this.ageError = 'Les personnes de plus de 150 ans ne peuvent pas être enregistrées.'; // Affichage de l'erreur si l'âge est invalide
-      } else {
-        this.ageError = ''; // Réinitialisation de l'erreur si l'âge est valide
-      }
-    }
+    // validateAge() {
+    //   const age = this.calculateAge(this.person.dateNaissance); // Calcul de l'âge actuel
+    //   if (age > 150) {
+    //     this.ageError = 'Les personnes de plus de 150 ans ne peuvent pas être enregistrées.'; // Affichage de l'erreur si l'âge est invalide
+    //   } else {
+    //     this.ageError = ''; // Réinitialisation de l'erreur si l'âge est valide
+    //   }
+    // }
   }
 };
 </script>

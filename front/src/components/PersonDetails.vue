@@ -1,7 +1,9 @@
 <template>
   <div v-if="person" class="person-details">
+    <!-- Message d'erreur global -->
+    <p v-if="errorGlobalMessage" class="error">{{ errorGlobalMessage }}</p>
     <h1>{{ person.prenom }} {{ person.nom }}</h1>
-    <p>Née le : {{ formatDate(person.dateNaissance) }} (Âge : {{ calculateAge(person.dateNaissance) }})</p>
+    <p>Née le : {{ formatDate(person.dateNaissance) }} (Âge : {{ person.age }})</p>
 
     <button @click="showAddEmploiForm = !showAddEmploiForm" class="btn">
       {{ showAddEmploiForm ? 'Annuler' : 'Ajouter un emploi' }}
@@ -13,19 +15,19 @@
       <form @submit.prevent="addEmploi">
         <div class="form-group">
           <label for="nomEntreprise">Nom de l'entreprise :</label>
-          <input type="text" v-model="newEmploi.nomEntreprise" id="nomEntreprise" required>
+          <input type="text" v-model="newEmploi.nomEntreprise" id="nomEntreprise">
         </div>
         <div class="form-group">
           <label for="poste">Poste :</label>
-          <input type="text" v-model="newEmploi.poste" id="poste" required>
+          <input type="text" v-model="newEmploi.poste" id="poste">
         </div>
         <div class="form-group">
           <label for="dateDebut">Date de début :</label>
-          <input type="date" v-model="newEmploi.dateDebut" id="dateDebut" required>
+          <input type="date" v-model="newEmploi.dateDebut" id="dateDebut">
         </div>
         <div class="form-group" v-if="!newEmploi.estActuel">
           <label for="dateFin">Date de fin :</label>
-          <input type="date" v-model="newEmploi.dateFin" id="dateFin" :required="!newEmploi.estActuel">
+          <input type="date" v-model="newEmploi.dateFin" id="dateFin">
         </div>
         <div class="form-group">
           <input type="checkbox" v-model="newEmploi.estActuel" id="estActuel">
@@ -84,19 +86,19 @@
         <form @submit.prevent="updateEmploi">
           <div class="form-group">
             <label for="nomEntreprise">Nom de l'entreprise :</label>
-            <input type="text" v-model="selectedEmploi.nomEntreprise" id="nomEntreprise" required>
+            <input type="text" v-model="selectedEmploi.nomEntreprise" id="nomEntreprise">
           </div>
           <div class="form-group">
             <label for="poste">Poste :</label>
-            <input type="text" v-model="selectedEmploi.poste" id="poste" required>
+            <input type="text" v-model="selectedEmploi.poste" id="poste">
           </div>
           <div class="form-group">
             <label for="dateDebut">Date de début :</label>
-            <input type="date" v-model="selectedEmploi.dateDebut" id="dateDebut" required>
+            <input type="date" v-model="selectedEmploi.dateDebut" id="dateDebut">
           </div>
           <div class="form-group" v-if="!selectedEmploi.estActuel">
             <label for="dateFin">Date de fin :</label>
-            <input type="date" v-model="selectedEmploi.dateFin" id="dateFin" :required="!selectedEmploi.estActuel">
+            <input type="date" v-model="selectedEmploi.dateFin" id="dateFin">
           </div>
           <div class="form-group">
             <input type="checkbox" v-model="selectedEmploi.estActuel" id="estActuel">
@@ -140,6 +142,7 @@ export default {
       dateStart: '',
       dateEnd: '',
       filteredEmplois: [],
+      errorGlobalMessage: '',
       errorMessage: '',
       dateErrorMessage: '',
       showModifyEmploiModal: false
@@ -150,29 +153,31 @@ export default {
     async fetchPerson(id) {
       try {
         const response = await apiClient.get(`/Personnes/${id}`);
+        console.log(response.data);
         this.person = response.data;
         this.newEmploi.personneId = id;
         this.filteredEmplois = this.person.emplois; // Initialiser filteredEmplois avec tous les emplois
       } catch (error) {
         console.error("Erreur lors de la récupération de la personne", error);
+        this.errorGlobalMessage = "Erreur lors de la récupération de la personne !";
       }
     },
-    // Calcul age à partir de la date de naissance
-    calculateAge(birthDate) {
-      const birth = new Date(birthDate);
-      const diff = Date.now() - birth.getTime();
-      const age = new Date(diff).getUTCFullYear() - 1970;
-      return age;
-    },
+    // // Calcul age à partir de la date de naissance
+    // calculateAge(birthDate) {
+    //   const birth = new Date(birthDate);
+    //   const diff = Date.now() - birth.getTime();
+    //   const age = new Date(diff).getUTCFullYear() - 1970;
+    //   return age;
+    // },
     formatDate,
     async addEmploi() {
       this.errorMessage = '';
 
-      // Vérification des dates
-      if (!this.newEmploi.estActuel && !this.validateDates(this.newEmploi.dateDebut, this.newEmploi.dateFin)) {
-        this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
-        return;
-      }
+      // // Vérification des dates
+      // if (!this.newEmploi.estActuel && !this.validateDates(this.newEmploi.dateDebut, this.newEmploi.dateFin)) {
+      //   this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
+      //   return;
+      // }
 
       try {
         // Si estActuel est coché, définissez dateFin à null
@@ -185,13 +190,10 @@ export default {
         this.resetEmploiForm();
       } catch (error) {
         console.error("Erreur lors de l'ajout de l'emploi", error);
-        this.errorMessage = "Erreur lors de l'ajout de l'emploi.";
+        this.errorMessage = "Tous les champs sont requis, la date de fin doit être supérieure ou égale à la date de début, et la date de fin ne doit pas dépasser aujourdhui !";
       }
     },
     async deleteEmploi(emploiId) {
-      console.log("test contenu personne");
-      console.log(emploiId);
-      console.log("test contenu personne");
       try {
         await apiClient.delete(`/Emplois/${emploiId}`);
         // Mettre à jour la liste des emplois affichés après suppression
@@ -199,6 +201,7 @@ export default {
         this.resetFilter();
       } catch (error) {
         console.error("Erreur lors de la suppression de l'emploi", error);
+        this.errorGlobalMessage = "Erreur lors de la suppression de l'emploi !";
       }
     },
     openModifyEmploiModal(emploi) {
@@ -234,10 +237,10 @@ export default {
       this.errorMessage = '';
 
       // Valider les dates si nécessaire
-      if (!this.selectedEmploi.estActuel && !this.validateDates(this.selectedEmploi.dateDebut, this.selectedEmploi.dateFin)) {
-        this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
-        return;
-      }
+      // if (!this.selectedEmploi.estActuel && !this.validateDates(this.selectedEmploi.dateDebut, this.selectedEmploi.dateFin)) {
+      //   this.errorMessage = 'La date de fin ne peut pas être antérieure à la date de début.';
+      //   return;
+      // }
 
       try {
         // Si estActuel est coché, définir dateFin à null
@@ -258,16 +261,16 @@ export default {
         this.closeModifyEmploiModal();
       } catch (error) {
         console.error("Erreur lors de la mise à jour de l'emploi", error);
-        this.errorMessage = "Erreur lors de la mise à jour de l'emploi.";
+        this.errorMessage = "Tous les champs sont requis, la date de fin doit être supérieure ou égale à la date de début, et la date de fin ne doit pas dépasser aujourdhui !";
       }
     },
     // Fonction de validation des dates
-    validateDates(debut, fin) {
-      if (fin && new Date(fin) < new Date(debut)) {
-        return false;
-      }
-      return true;
-    },
+    // validateDates(debut, fin) {
+    //   if (fin && new Date(fin) < new Date(debut)) {
+    //     return false;
+    //   }
+    //   return true;
+    // },
     resetEmploiForm() {
       this.newEmploi = {
         nomEntreprise: '',
@@ -281,36 +284,20 @@ export default {
       this.errorMessage = '';
     },
     filterEmplois() {
-
       this.dateErrorMessage = '';
 
-      // Vérifier si les deux dates sont fournies
-      if (!this.dateStart || !this.dateEnd) {
-        this.dateErrorMessage = 'Les deux dates doivent être fournies.';
-        return;
-      }
+      const url = `/Emplois/${this.person.id}/emplois`;
+      const params = {
+        dateDebut: this.dateStart,
+        dateFin: this.dateEnd
+      };
 
-      // Vérifier si dateStart est inférieure ou égale à dateEnd
-      if (this.dateStart && this.dateEnd && new Date(this.dateStart) > new Date(this.dateEnd)) {
-        this.dateErrorMessage = 'La date de début ne peut pas être postérieure à la date de fin.';
-        return;
-      }
-
-      const start = new Date(this.dateStart);
-      const end = new Date(this.dateEnd);
-      start.setHours(0, 0, 0, 0); // Définir heures, minutes, secondes et millisecondes à zéro
-      end.setHours(0, 0, 0, 0); // meme chose
-
-      this.filteredEmplois = this.person.emplois.filter(emploi => {
-        const debut = new Date(emploi.dateDebut);
-        const fin = emploi.dateFin ? new Date(emploi.dateFin) : new Date();
-
-        debut.setHours(0, 0, 0, 0); // Définir heures, minutes, secondes et millisecondes à zéro
-        fin.setHours(0, 0, 0, 0); // meme chose
-
-        return (debut <= start && fin >= end) ||
-          (debut >= start && debut <= end) ||
-          (fin >= start && fin <= end);
+      apiClient.get(url, { params }).then((response) => {
+        console.log(response.data);
+        this.filteredEmplois = response.data;
+      }).catch(error => {
+        console.error('Erreur lors du filtrage des personnes:', error);
+        this.dateErrorMessage = 'Erreur, veuillez réessayer et vérifier si la date de début est inférieure ou égale à la date de fin !';
       });
     },
     resetFilter() {
@@ -411,7 +398,7 @@ input[type="text"],
 input[type="date"],
 input[type="checkbox"] {
   width: 100%;
-  padding: 10px;
+  padding: 7px;
   font-size: 16px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -466,7 +453,7 @@ input[type="checkbox"]:focus {
   text-align: center;
 }
 
-.btn:hover {
+.btn-actions:hover {
   background-color: #0056b3;
 }
 
